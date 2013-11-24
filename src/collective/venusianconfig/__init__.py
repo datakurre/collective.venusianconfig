@@ -67,17 +67,19 @@ def venusianscan(file, context, testing=False):
     """Process a venusian scan"""
     scanner = venusian.Scanner(context=context, testing=testing)
 
-    seen = set(sys.modules.keys())
+    # Import file as submodule of context.package
     filename = os.path.splitext(os.path.basename(file.name))[0]
     imp.load_source('{0:s}.{1:s}'.format(context.package.__name__, filename),
                     file.name)
-    loaded = set(sys.modules.keys()).difference(seen)
 
-    for name in loaded:
-        if name.startswith(context.package.__name__):
-            module = sys.modules[name]
-            if module:
-                scanner.scan(module)
+    # Scan not-yet-seen submodules of context.package
+    for name, module in sys.modules.items():
+        module = sys.modules[name]
+        if (module
+                and name.startswith(context.package.__name__)
+                and name != context.package.__name__
+                and context.processFile(module.__file__)):
+            scanner.scan(module)
 
 
 def processxmlfile(file, context, testing=False):
