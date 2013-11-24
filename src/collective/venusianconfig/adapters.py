@@ -6,7 +6,7 @@ import logging
 
 
 @configure('subscriber:handler',
-           context=('Products.CMFCore.interfaces.IContentish',
-                    'zope.lifecycleevent.IObjectModifiedEvent'))
+           adapts=('Products.CMFCore.interfaces.IContentish',
+                   'zope.lifecycleevent.IObjectModifiedEvent'))
 def logObjectModifiedEvent(context, event):
     logging.info('{0:s} modified'.format(context))

@@ -16,6 +16,7 @@ NAMESPACES = {
 }
 
 ARGUMENT_MAP = {
+    'adapts': 'for',
     'context': 'for'
 }
 
