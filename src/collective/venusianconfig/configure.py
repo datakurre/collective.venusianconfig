@@ -1,1 +1,2 @@
 import collective.venusianconfig.view
+import collective.venusianconfig.adapters

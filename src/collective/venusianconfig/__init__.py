@@ -65,15 +65,19 @@ class configure(object):
 
 def venusianscan(file, context, testing=False):
     """Process a venusian scan"""
-
     scanner = venusian.Scanner(context=context, testing=testing)
-    # name = os.path.splitext(os.path.basename(file.name))[0]
-    # package = imp.load_source(
-    #     '{0:s}.{1:s}'.format(context.package.__name__, name),
-    #     file.name
-    # )
-    # import pdb; pdb.set_trace()
-    scanner.scan(context.package)
+
+    seen = set(sys.modules.keys())
+    filename = os.path.splitext(os.path.basename(file.name))[0]
+    imp.load_source('{0:s}.{1:s}'.format(context.package.__name__, filename),
+                    file.name)
+    loaded = set(sys.modules.keys()).difference(seen)
+
+    for name in loaded:
+        if name.startswith(context.package.__name__):
+            module = sys.modules[name]
+            if module:
+                scanner.scan(module)
 
 
 def processxmlfile(file, context, testing=False):
