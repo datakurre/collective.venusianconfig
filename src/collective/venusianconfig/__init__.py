@@ -27,15 +27,24 @@ class configure(object):
         for from_, to in ARGUMENT_MAP.items():
             if from_ in kwargs:
                 kwargs[to] = kwargs.pop(from_)
+
+        # Concatenate lists and tuples into ' ' separated strings:
+        for key, value in kwargs.items():
+            if type(value) in (list, tuple):
+                kwargs[key] = ' '.join(value)
+
+        # Store arguments:
         self.__dict__.update(kwargs)
 
-        # Resolve namespace and directive callable argument
+        # Resolve namespace and directive callable argument:
         parts = directive.split(':')
         assert len(parts) > 1 and len(parts) < 4, \
             ('{0:s} should look like '
              '[namespace:]directive:argument').format(directive)
         if len(parts) > 2:
             self.__dict__['namespace'] = NAMESPACES[parts.pop(0)]
+        else:
+            self.__dict__['namespace'] = NAMESPACES['']
         self.__dict__['directive'] = parts[0]
         self.__dict__['callable'] = parts[1]
 
@@ -58,9 +67,12 @@ def venusianscan(file, context, testing=False):
     """Process a venusian scan"""
 
     scanner = venusian.Scanner(context=context, testing=testing)
-    name = os.path.splitext(os.path.basename(file.name))[0]
-    imp.load_source('{0:s}.{1:s}'.format(context.package.__name__, name),
-                    file.name)
+    # name = os.path.splitext(os.path.basename(file.name))[0]
+    # package = imp.load_source(
+    #     '{0:s}.{1:s}'.format(context.package.__name__, name),
+    #     file.name
+    # )
+    # import pdb; pdb.set_trace()
     scanner.scan(context.package)
 
 
