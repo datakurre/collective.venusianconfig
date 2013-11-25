@@ -6,7 +6,7 @@ import venusian
 from pkgutil import ImpLoader
 
 NAMESPACES = {
-    '': 'http://namespaces.zope.org/zope',
+    'zope': 'http://namespaces.zope.org/zope',
     'meta': 'http://namespaces.zope.org/meta',
     'zcml': 'http://namespaces.zope.org/zcml',
     'grok': 'http://namespaces.zope.org/grok',
@@ -43,9 +43,10 @@ class configure(object):
             ('{0:s} should look like '
              '[namespace:]directive:argument').format(directive)
         if len(parts) > 2:
-            self.__dict__['namespace'] = NAMESPACES[parts.pop(0)]
+            ns = parts.pop(0)
+            self.__dict__['namespace'] = NAMESPACES.get(ns, ns)
         else:
-            self.__dict__['namespace'] = NAMESPACES['']
+            self.__dict__['namespace'] = NAMESPACES.get('zope')
         self.__dict__['directive'] = parts[0]
         self.__dict__['callable'] = parts[1]
 
