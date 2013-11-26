@@ -16,12 +16,39 @@ NAMESPACES = {
 }
 
 ARGUMENT_MAP = {
+    'for_': 'for',
     'adapts': 'for',
-    'context': 'for'
+    'context': 'for',
+    'klass': 'class',
+    'class_': 'class',
 }
 
 
+class ConfigureMetaProxy(object):
+
+    def __init__(self, klass, proxied_attr):
+        self._klass = klass
+        self._proxied_attr = proxied_attr
+
+    def __getattr__(self, attr_name):
+        return getattr(
+            self._klass,
+            '{0:s}:{1:s}'.format(self._proxied_attr, attr_name)
+        )
+
+    def __call__(self, *args, **kwargs):
+        return self._klass(self._proxied_attr, *args, **kwargs)
+
+
+class ConfigureMeta(type):
+
+    def __getattr__(self, attr_name):
+        return ConfigureMetaProxy(self, attr_name)
+
+
 class configure(object):
+
+    __metaclass__ = ConfigureMeta
 
     def __init__(self, directive, **kwargs):
         # Map 'context' to 'for', etc:
@@ -39,6 +66,9 @@ class configure(object):
 
         # Resolve namespace and directive callable argument:
         parts = directive.split(':')
+        for i, part in enumerate(parts):
+            if part in ARGUMENT_MAP:
+                parts[i] = ARGUMENT_MAP[part]
         assert len(parts) > 1 and len(parts) < 4, \
             ('{0:s} should look like '
              '[namespace:]directive:argument').format(directive)
