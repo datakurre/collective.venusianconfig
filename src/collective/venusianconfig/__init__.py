@@ -2,17 +2,28 @@
 import imp
 import os
 import sys
-import venusian
 from pkgutil import ImpLoader
 
+import venusian
+
+
 NAMESPACES = {
-    'zope': 'http://namespaces.zope.org/zope',
-    'meta': 'http://namespaces.zope.org/meta',
-    'zcml': 'http://namespaces.zope.org/zcml',
-    'grok': 'http://namespaces.zope.org/grok',
+    'apidoc': 'http://namespaces.zope.org/apidoc',
     'browser': 'http://namespaces.zope.org/browser',
+    'cache': 'http://namespaces.zope.org/cache',
+    'cmf': 'http://namespaces.zope.org/cmf',
+    'five': 'http://namespaces.zope.org/five',
     'genericsetup': 'http://namespaces.zope.org/genericsetup',
-    'i18n': 'http://namespaces.zope.org/i18n'
+    'grok': 'http://namespaces.zope.org/grok',
+    'gs': 'http://namespaces.zope.org/genericsetup',
+    'i18n': 'http://namespaces.zope.org/i18n',
+    'kss': 'http://namespaces.zope.org/kss',
+    'meta': 'http://namespaces.zope.org/meta',
+    'monkey': 'http://namespaces.zope.org/monkey',
+    'plone': 'http://namespaces.plone.org/plone',
+    'z3c': 'http://namespaces.zope.org/z3c',
+    'zcml': 'http://namespaces.zope.org/zcml',
+    'zope': 'http://namespaces.zope.org/zope',
 }
 
 ARGUMENT_MAP = {
@@ -23,21 +34,24 @@ ARGUMENT_MAP = {
     'class_': 'class',
 }
 
+CALLABLE_ARGUMENTS = [
+    'class',
+    'factory',
+    'handler'
+]
+
 
 class ConfigureMetaProxy(object):
 
-    def __init__(self, klass, proxied_attr):
+    def __init__(self, klass, value):
         self._klass = klass
-        self._proxied_attr = proxied_attr
+        self._value = value
 
     def __getattr__(self, attr_name):
-        return getattr(
-            self._klass,
-            '{0:s}:{1:s}'.format(self._proxied_attr, attr_name)
-        )
+        return getattr(self._klass, '{0}|{1}'.format(self._value, attr_name))
 
     def __call__(self, *args, **kwargs):
-        return self._klass(self._proxied_attr, *args, **kwargs)
+        return self._klass(self._value.split('|'), *args, **kwargs)
 
 
 class ConfigureMeta(type):
@@ -51,34 +65,54 @@ class configure(object):
     __metaclass__ = ConfigureMeta
 
     def __init__(self, directive, **kwargs):
-        # Map 'context' to 'for', etc:
+        # Map 'klass' to 'class', 'for_' to 'for, 'context' to 'for', etc:
         for from_, to in ARGUMENT_MAP.items():
             if from_ in kwargs:
                 kwargs[to] = kwargs.pop(from_)
+            if from_ in directive:
+                directive[directive.index(from_)] = to
 
-        # Concatenate lists and tuples into ' ' separated strings:
+        # Map classes into their identifiers and concatenate lists and tuples
+        # into ' ' separated strings:
         for key, value in kwargs.items():
             if type(value) in (list, tuple):
+                value = [getattr(item, '__identifier__', None) or item
+                         for item in value]
                 kwargs[key] = ' '.join(value)
+            else:
+                kwargs[key] = getattr(value, '__identifier__', None) or value
 
-        # Store arguments:
+        # Store processed arguments:
         self.__dict__.update(kwargs)
 
-        # Resolve namespace and directive callable argument:
-        parts = directive.split(':')
-        for i, part in enumerate(parts):
-            if part in ARGUMENT_MAP:
-                parts[i] = ARGUMENT_MAP[part]
-        assert len(parts) > 1 and len(parts) < 4, \
-            ('{0:s} should look like '
-             '[namespace:]directive:argument').format(directive)
-        if len(parts) > 2:
-            ns = parts.pop(0)
-            self.__dict__['namespace'] = NAMESPACES.get(ns, ns)
+        # Resolve namespace and directive callable argument for decorator:
+        if directive[-1] in CALLABLE_ARGUMENTS:
+            if len(directive) > 2:
+                ns = directive.pop(0)
+                self.__dict__['namespace'] = NAMESPACES.get(ns, ns)
+            else:
+                self.__dict__['namespace'] = NAMESPACES.get('zope')
+            self.__dict__['directive'] = directive[0]
+            self.__dict__['callable'] = directive[1]
+        # Attach contextless directives immediately:
         else:
-            self.__dict__['namespace'] = NAMESPACES.get('zope')
-        self.__dict__['directive'] = parts[0]
-        self.__dict__['callable'] = parts[1]
+            arguments = self.__dict__.copy()
+            if len(directive) > 1:
+                ns = directive.pop(0)
+                arguments['namespace'] = NAMESPACES.get(ns, ns)
+            else:
+                arguments['namespace'] = NAMESPACES.get('zope')
+            arguments['directive'] = directive[0]
+
+            def callback(scanner, name, ob):
+                directive = (arguments.pop('namespace'),
+                             arguments.pop('directive'))
+                scanner.context.begin(directive, arguments)
+                scanner.context.end()
+
+            scope, module, f_locals, f_globals, codeinfo = \
+                venusian.advice.getFrameInfo(sys._getframe(2))
+            venusian.attach(module, callback, depth=2)
 
     def __call__(self, wrapped):
         arguments = self.__dict__.copy()
@@ -95,32 +129,42 @@ class configure(object):
         return wrapped
 
 
+def scan(package):
+    scope, module, f_locals, f_globals, codeinfo = \
+        venusian.advice.getFrameInfo(sys._getframe(1))
+    venusian.attach(
+        module,  # module, where scan was called
+        lambda scanner, name, ob, package=package: scanner.scan(package)
+    )
+
+
 def venusianscan(file, context, testing=False):
     """Process a venusian scan"""
+
+    # Import the given file as a module of context.package:
+    name = os.path.splitext(os.path.basename(file.name))[0]
+    module = imp.load_source(
+        '{0:s}.{1:s}'.format(context.package.__name__, name),
+        file.name
+    )
+
+    # Prepare temporary package for venusian scanner
+    package = imp.new_module(module.__name__)
+    setattr(package, '__configure__', module)  # Any attrname would work...
+
+    # Execute scan!
     scanner = venusian.Scanner(context=context, testing=testing)
-
-    # Import file as submodule of context.package
-    filename = os.path.splitext(os.path.basename(file.name))[0]
-    imp.load_source('{0:s}.{1:s}'.format(context.package.__name__, filename),
-                    file.name)
-
-    # Scan not-yet-seen submodules of context.package
-    for name, module in sys.modules.items():
-        module = sys.modules[name]
-        if (module
-                and name.startswith(context.package.__name__)
-                and name != context.package.__name__
-                and context.processFile(module.__file__)):
-            scanner.scan(module)
+    scanner.scan(package)
+    scanner.scan(module)
 
 
 def processxmlfile(file, context, testing=False):
     """Process a configuration file (either zcml or cfg)"""
     from zope.configuration.xmlconfig import _processxmlfile
-    if file.name.endswith('.zcml'):
-        return _processxmlfile(file, context, testing)
-    else:
+    if file.name.endswith('.py'):
         return venusianscan(file, context, testing)
+    else:
+        return _processxmlfile(file, context, testing)
 
 
 class MonkeyPatcher(ImpLoader):
