@@ -171,12 +171,17 @@ class configure(object):
         return wrapped
 
 
+def _scan(scanner, package):
+    if scanner.context.processFile(package.__file__):
+        scanner.scan(package)
+
+
 def scan(package):
     scope, module, f_locals, f_globals, codeinfo = \
         venusian.advice.getFrameInfo(sys._getframe(1))
     venusian.attach(
         module,  # module, where scan was called
-        lambda scanner, name, ob, package=package: scanner.scan(package)
+        lambda scanner, name, ob, package=package: _scan(scanner, package)
     )
 
 
