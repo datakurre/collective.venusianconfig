@@ -3,6 +3,7 @@ import imp
 import os
 import sys
 from pkgutil import ImpLoader
+import re
 
 import venusian
 from zope.configuration.xmlconfig import ParserInfo
@@ -62,13 +63,46 @@ class ConfigureMeta(type):
         return ConfigureMetaProxy(self, attr_name)
 
 
+CONFIGURE_START = re.compile('^\s*@?configure.*')
+CONFIGURE_END = re.compile('.*\)\s*$')
+
+
+class CodeInfo(ParserInfo):
+
+    def __init__(self, frame):
+        file_ = frame.f_code.co_filename
+        line = frame.f_lineno
+        super(CodeInfo, self).__init__(file_, line, 0)
+
+    def __str__(self):
+        if self.line == self.eline and self.column == self.ecolumn:
+            try:
+                with open(self.file) as file_:
+                    lines = file_.readlines()
+                    self.line + 1  # fix to start scan below the directive
+                    while self.line > 0:
+                        if not CONFIGURE_START.match(lines[self.line - 1]):
+                            self.line -= 1
+                            continue
+                        break
+                    while self.eline < len(lines):
+                        if not CONFIGURE_END.match(lines[self.eline - 1]):
+                            self.eline += 1
+                            continue
+                        self.ecolumn = len(lines[self.eline - 1])
+                        break
+            except IOError:
+                pass  # let the super call to raise this exception
+        return super(CodeInfo, self).__str__()
+
+
 class configure(object):
 
     __metaclass__ = ConfigureMeta
 
     def __init__(self, directive, **kwargs):
         # Save execution context info
-        self.frame = sys._getframe(2)
+        self.__info__ = CodeInfo(sys._getframe(2))
 
         # Map 'klass' to 'class', 'for_' to 'for, 'context' to 'for', etc:
         for from_, to in ARGUMENT_MAP.items():
@@ -103,7 +137,6 @@ class configure(object):
         # Or attach contextless directives immediately:
         else:
             arguments = self.__dict__.copy()
-            frame = arguments.pop('frame')
             if len(directive) > 1:
                 ns = directive.pop(0)
                 arguments['namespace'] = NAMESPACES.get(ns, ns)
@@ -114,10 +147,9 @@ class configure(object):
             def callback(scanner, name, ob):
                 directive_ = (arguments.pop('namespace'),
                               arguments.pop('directive'))
-                with open(frame.f_code.co_filename) as source:
-                    info = ParserInfo(source, frame.f_lineno, 0)
-                    scanner.context.begin(directive_, arguments, info)
-                    scanner.context.end()
+                info = arguments.pop('__info__')
+                scanner.context.begin(directive_, arguments, info)
+                scanner.context.end()
 
             scope, module, f_locals, f_globals, codeinfo = \
                 venusian.advice.getFrameInfo(sys._getframe(2))
@@ -125,17 +157,15 @@ class configure(object):
 
     def __call__(self, wrapped):
         arguments = self.__dict__.copy()
-        frame = arguments.pop('frame')
 
         def callback(scanner, name, ob):
             name = '{0:s}.{1:s}'.format(ob.__module__, name)
             arguments[arguments.pop('callable')] = name
             directive = (arguments.pop('namespace'),
                          arguments.pop('directive'))
-            with open(frame.f_code.co_filename) as source:
-                info = ParserInfo(source, frame.f_lineno, 0)
-                scanner.context.begin(directive, arguments, info)
-                scanner.context.end()
+            info = arguments.pop('__info__')
+            scanner.context.begin(directive, arguments, info)
+            scanner.context.end()
 
         venusian.attach(wrapped, callback)
         return wrapped
