@@ -6,6 +6,7 @@ from pkgutil import ImpLoader
 import re
 
 import venusian
+from zope.configuration.exceptions import ConfigurationError
 from zope.configuration.xmlconfig import ParserInfo, ConfigurationHandler
 
 
@@ -188,6 +189,15 @@ class configure(object):
 
 
 def _scan(scanner, package):
+    if not os.path.dirname(scanner.context.package.__file__) == \
+            os.path.dirname(package.__file__):
+        package_dirname = os.path.dirname(package.__file__)
+        raise ConfigurationError(
+            "Cannot scan package '{0}'. ".format(package_dirname) +
+            "Only modules in the same package can be scanned. "
+            "Sub-packages or separate packages must be configured "
+            "using include-directive."
+        )
     if scanner.context.processFile(package.__file__):
         scanner.scan(package)
 
