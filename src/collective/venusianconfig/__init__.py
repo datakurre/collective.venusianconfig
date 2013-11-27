@@ -5,6 +5,7 @@ import sys
 from pkgutil import ImpLoader
 
 import venusian
+from zope.configuration.xmlconfig import ParserInfo
 
 
 NAMESPACES = {
@@ -27,6 +28,7 @@ NAMESPACES = {
 }
 
 ARGUMENT_MAP = {
+    'file_': 'file',
     'for_': 'for',
     'adapts': 'for',
     'context': 'for',
@@ -65,6 +67,9 @@ class configure(object):
     __metaclass__ = ConfigureMeta
 
     def __init__(self, directive, **kwargs):
+        # Save execution context info
+        self.frame = sys._getframe(2)
+
         # Map 'klass' to 'class', 'for_' to 'for, 'context' to 'for', etc:
         for from_, to in ARGUMENT_MAP.items():
             if from_ in kwargs:
@@ -94,9 +99,11 @@ class configure(object):
                 self.__dict__['namespace'] = NAMESPACES.get('zope')
             self.__dict__['directive'] = directive[0]
             self.__dict__['callable'] = directive[1]
-        # Attach contextless directives immediately:
+
+        # Or attach contextless directives immediately:
         else:
             arguments = self.__dict__.copy()
+            frame = arguments.pop('frame')
             if len(directive) > 1:
                 ns = directive.pop(0)
                 arguments['namespace'] = NAMESPACES.get(ns, ns)
@@ -105,10 +112,12 @@ class configure(object):
             arguments['directive'] = directive[0]
 
             def callback(scanner, name, ob):
-                directive = (arguments.pop('namespace'),
-                             arguments.pop('directive'))
-                scanner.context.begin(directive, arguments)
-                scanner.context.end()
+                directive_ = (arguments.pop('namespace'),
+                              arguments.pop('directive'))
+                with open(frame.f_code.co_filename) as source:
+                    info = ParserInfo(source, frame.f_lineno, 0)
+                    scanner.context.begin(directive_, arguments, info)
+                    scanner.context.end()
 
             scope, module, f_locals, f_globals, codeinfo = \
                 venusian.advice.getFrameInfo(sys._getframe(2))
@@ -116,14 +125,17 @@ class configure(object):
 
     def __call__(self, wrapped):
         arguments = self.__dict__.copy()
+        frame = arguments.pop('frame')
 
         def callback(scanner, name, ob):
             name = '{0:s}.{1:s}'.format(ob.__module__, name)
             arguments[arguments.pop('callable')] = name
             directive = (arguments.pop('namespace'),
                          arguments.pop('directive'))
-            scanner.context.begin(directive, arguments)
-            scanner.context.end()
+            with open(frame.f_code.co_filename) as source:
+                info = ParserInfo(source, frame.f_lineno, 0)
+                scanner.context.begin(directive, arguments, info)
+                scanner.context.end()
 
         venusian.attach(wrapped, callback)
         return wrapped
@@ -138,8 +150,21 @@ def scan(package):
     )
 
 
+def i18n_domain(domain):
+    scope, module, f_locals, f_globals, codeinfo = \
+        venusian.advice.getFrameInfo(sys._getframe(1))
+    venusian.attach(
+        module,  # module, where i18n_domain was called
+        lambda scanner, name, ob, domain=domain: \
+        setattr(scanner.context, 'i18n_domain', domain)
+    )
+
+
 def venusianscan(file, context, testing=False):
     """Process a venusian scan"""
+
+    # Set default i18n_domain
+    context.i18n_domain = context.package.__name__
 
     # Import the given file as a module of context.package:
     name = os.path.splitext(os.path.basename(file.name))[0]
