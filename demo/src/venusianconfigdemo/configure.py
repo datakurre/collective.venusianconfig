@@ -13,11 +13,14 @@ configure.browser.resourceDirectory(
 scan(views)
 scan(adapters)
 
+configure.meta.provides(feature='demofeature')
+
 configure.browser.page(
     name='hello-world-template',
     for_='*',
     template='templates/hello_world.pt',
     permission='zope2.View',
+    condition='have demofeature'
 )
 
 configure.include(

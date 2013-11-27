@@ -6,7 +6,7 @@ from pkgutil import ImpLoader
 import re
 
 import venusian
-from zope.configuration.xmlconfig import ParserInfo
+from zope.configuration.xmlconfig import ParserInfo, ConfigurationHandler
 
 
 NAMESPACES = {
@@ -145,6 +145,14 @@ class configure(object):
             arguments['directive'] = directive[0]
 
             def callback(scanner, name, ob):
+                # Evaluate conditions
+                handler = ConfigurationHandler(scanner.context,
+                                               testing=scanner.testing)
+                condition = arguments.pop('condition', None)
+                if condition and not handler.evaluateCondition(condition):
+                    return
+
+                # Configure standalone directive
                 directive_ = (arguments.pop('namespace'),
                               arguments.pop('directive'))
                 info = arguments.pop('__info__')
@@ -159,6 +167,14 @@ class configure(object):
         arguments = self.__dict__.copy()
 
         def callback(scanner, name, ob):
+            # Evaluate conditions
+            handler = ConfigurationHandler(scanner.context,
+                                           testing=scanner.testing)
+            condition = arguments.pop('condition', None)
+            if condition and not handler.evaluateCondition(condition):
+                return
+
+            # Configure standalone directive
             name = '{0:s}.{1:s}'.format(ob.__module__, name)
             arguments[arguments.pop('callable')] = name
             directive = (arguments.pop('namespace'),
