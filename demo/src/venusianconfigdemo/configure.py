@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+from zope.i18nmessageid import MessageFactory
 from collective.venusianconfig import configure
 from collective.venusianconfig import scan
 
 from venusianconfigdemo import views
 from venusianconfigdemo import adapters
+
+_ = MessageFactory('venusianconfigdemo')
+
+configure.i18n.registerTranslations(directory='locales')
 
 configure.browser.resourceDirectory(
     name='venusianconfigdemo',
@@ -30,8 +35,8 @@ configure.include(
 
 configure.gs.registerProfile(
     name='default',
-    title=u'Demonstration of venusian-configuration',
-    description=u'Install venusian-configured portlets',
+    title=_(u'Demonstration of venusian-configuration'),
+    description=_(u'Install venusian-configured portlets'),
     directory='profiles/default',
     provides='Products.GenericSetup.interfaces.EXTENSION'
 )

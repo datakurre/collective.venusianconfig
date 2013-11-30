@@ -216,7 +216,7 @@ def i18n_domain(domain):
         venusian.advice.getFrameInfo(sys._getframe(1))
     venusian.attach(
         module,  # module, where i18n_domain was called
-        lambda scanner, name, ob, domain=domain: \
+        lambda scanner, name, ob, domain=domain:
         setattr(scanner.context, 'i18n_domain', domain)
     )
 

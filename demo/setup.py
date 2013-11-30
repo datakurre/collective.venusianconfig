@@ -25,6 +25,7 @@ setup(
         'collective.venusianconfig',
     ],
     extras_require={'test': [
+        'plone.app.testing',
     ]},
     entry_points="""
     # -*- Entry points: -*-
