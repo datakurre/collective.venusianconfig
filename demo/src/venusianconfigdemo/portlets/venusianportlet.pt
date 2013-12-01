@@ -1,0 +1,16 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      i18n:domain="venusianconfigdemo" tal:omit-tag="">
+<body tal:omit-tag="">
+
+<dl class="portlet">
+    <dd class="portletItem" i18n:translate="">
+        I'm a portlet.
+    </dd>
+</dl>
+
+</body>
+</html>

@@ -97,6 +97,13 @@ class CodeInfo(ParserInfo):
         return super(CodeInfo, self).__str__()
 
 
+def get_identifier_or_string(value):
+    if hasattr(value, '__module__') and hasattr(value, '__name__'):
+        return '.'.join([value.__module__, value.__name__])
+    else:
+        return value
+
+
 class configure(object):
 
     __metaclass__ = ConfigureMeta
@@ -116,11 +123,10 @@ class configure(object):
         # into ' ' separated strings:
         for key, value in kwargs.items():
             if type(value) in (list, tuple):
-                value = [getattr(item, '__identifier__', None) or item
-                         for item in value]
+                value = map(get_identifier_or_string, value)
                 kwargs[key] = ' '.join(value)
             else:
-                kwargs[key] = getattr(value, '__identifier__', None) or value
+                kwargs[key] = get_identifier_or_string(value)
 
         # Store processed arguments:
         self.__dict__.update(kwargs)
