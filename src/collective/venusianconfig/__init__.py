@@ -195,6 +195,7 @@ class configure(object):
 
 
 def _scan(scanner, package):
+    # Check for scanning of sub-packages, which is not yet supported:
     if not os.path.dirname(scanner.context.package.__file__) == \
             os.path.dirname(package.__file__):
         package_dirname = os.path.dirname(package.__file__)
@@ -204,7 +205,14 @@ def _scan(scanner, package):
             "Sub-packages or separate packages must be configured "
             "using include-directive."
         )
+
     if scanner.context.processFile(package.__file__):
+        # Scan non-decorator configure-calls:
+        _package = imp.new_module(package.__name__)
+        setattr(_package, '__configure__', package)  # Any name would work...
+        scanner.scan(_package)
+
+        # Scan decorators:
         scanner.scan(package)
 
 
@@ -235,19 +243,16 @@ def venusianscan(file, context, testing=False):
 
     # Import the given file as a module of context.package:
     name = os.path.splitext(os.path.basename(file.name))[0]
-    module = imp.load_source(
+    package = imp.load_source(
         '{0:s}.{1:s}'.format(context.package.__name__, name),
         file.name
     )
 
-    # Prepare temporary package for venusian scanner
-    package = imp.new_module(module.__name__)
-    setattr(package, '__configure__', module)  # Any attrname would work...
-
-    # Execute scan!
+    # Initialize scanner
     scanner = venusian.Scanner(context=context, testing=testing)
-    scanner.scan(package)
-    scanner.scan(module)
+
+    # Scan the package
+    _scan(scanner, package)
 
 
 def processxmlfile(file, context, testing=False):
