@@ -100,6 +100,9 @@ class CodeInfo(ParserInfo):
 def get_identifier_or_string(value):
     if hasattr(value, '__module__') and hasattr(value, '__name__'):
         return '.'.join([value.__module__, value.__name__])
+    elif (hasattr(value, '__package__') and hasattr(value, '__name__')
+          and value.__package__ == value.__name__):
+        return value.__name__
     else:
         return value
 
@@ -108,9 +111,38 @@ class configure(object):
 
     __metaclass__ = ConfigureMeta
 
-    def __init__(self, directive, **kwargs):
+    def __enter__(self):
+        # Set complex-flag to mark begin of nested directive
+        self.__is_complex__ = True
+        return self.__class__
+
+    def __exit__(self, type, value, tb):
+        # Register context end to end nested directive
+        def callback(scanner, name, ob):
+            scanner.context.end()
+
+        if tb is None:
+            # Look up first frame outside this file
+            depth = 0
+            while __file__.startswith(sys._getframe(depth).f_code.co_filename):
+                depth += 1
+            # Register the callback
+            scope, module, f_locals, f_globals, codeinfo = \
+                venusian.advice.getFrameInfo(sys._getframe(depth))
+            venusian.attach(module, callback, depth=depth)
+
+    def __init__(self, directive=['zope', 'configure'], **kwargs):
+        # Flag whether this is a complex (nested) directive or not
+        self.__is_complex__ = False
+
+        # Look up first frame outside this file
+        self.__depth__ = 0
+        while __file__.startswith(
+                sys._getframe(self.__depth__).f_code.co_filename):
+            self.__depth__ += 1
+
         # Save execution context info
-        self.__info__ = CodeInfo(sys._getframe(2))
+        self.__info__ = CodeInfo(sys._getframe(self.__depth__))
 
         # Map 'klass' to 'class', 'for_' to 'for, 'context' to 'for', etc:
         for from_, to in ARGUMENT_MAP.items():
@@ -129,27 +161,29 @@ class configure(object):
                 kwargs[key] = get_identifier_or_string(value)
 
         # Store processed arguments:
-        self.__dict__.update(kwargs)
+        self.__arguments__ = kwargs.copy()
 
         # Resolve namespace and directive callable argument for decorator:
         if directive[-1] in CALLABLE_ARGUMENTS:
             if len(directive) > 2:
                 ns = directive.pop(0)
-                self.__dict__['namespace'] = NAMESPACES.get(ns, ns)
+                self.__arguments__['namespace'] = NAMESPACES.get(ns, ns)
             else:
-                self.__dict__['namespace'] = NAMESPACES.get('zope')
-            self.__dict__['directive'] = directive[0]
-            self.__dict__['callable'] = directive[1]
+                self.__arguments__['namespace'] = NAMESPACES.get('zope')
+            self.__arguments__['directive'] = directive[0]
+            self.__arguments__['callable'] = directive[1]
 
         # Or attach contextless directives immediately:
         else:
-            arguments = self.__dict__.copy()
+            arguments = self.__arguments__.copy()
             if len(directive) > 1:
                 ns = directive.pop(0)
                 arguments['namespace'] = NAMESPACES.get(ns, ns)
             else:
                 arguments['namespace'] = NAMESPACES.get('zope')
             arguments['directive'] = directive[0]
+
+            arguments['__self__'] = self
 
             def callback(scanner, name, ob):
                 # Evaluate conditions
@@ -162,16 +196,20 @@ class configure(object):
                 # Configure standalone directive
                 directive_ = (arguments.pop('namespace'),
                               arguments.pop('directive'))
-                info = arguments.pop('__info__')
-                scanner.context.begin(directive_, arguments, info)
-                scanner.context.end()
+                self_ = arguments.pop('__self__')
+                scanner.context.begin(directive_, arguments, self_.__info__)
+
+                # Do not end when used with 'with' statement
+                if not self_.__is_complex__:
+                    scanner.context.end()
 
             scope, module, f_locals, f_globals, codeinfo = \
-                venusian.advice.getFrameInfo(sys._getframe(2))
-            venusian.attach(module, callback, depth=2)
+                venusian.advice.getFrameInfo(sys._getframe(self.__depth__))
+            venusian.attach(module, callback, depth=self.__depth__)
 
     def __call__(self, wrapped):
-        arguments = self.__dict__.copy()
+        arguments = self.__arguments__.copy()
+        arguments['__self__'] = self
 
         def callback(scanner, name, ob):
             # Evaluate conditions
@@ -186,15 +224,15 @@ class configure(object):
             arguments[arguments.pop('callable')] = name
             directive = (arguments.pop('namespace'),
                          arguments.pop('directive'))
-            info = arguments.pop('__info__')
-            scanner.context.begin(directive, arguments, info)
+            self_ = arguments.pop('__self__')
+            scanner.context.begin(directive, arguments, self_.__info__)
             scanner.context.end()
 
         venusian.attach(wrapped, callback)
         return wrapped
 
 
-def _scan(scanner, package):
+def _scan(scanner, package, force=False):
     # Check for scanning of sub-packages, which is not yet supported:
     if not os.path.dirname(scanner.context.package.__file__) == \
             os.path.dirname(package.__file__):
@@ -206,7 +244,7 @@ def _scan(scanner, package):
             "using include-directive."
         )
 
-    if scanner.context.processFile(package.__file__):
+    if force or scanner.context.processFile(package.__file__):
         # Scan non-decorator configure-calls:
         _package = imp.new_module(package.__name__)
         setattr(_package, '__configure__', package)  # Any name would work...
@@ -252,7 +290,7 @@ def venusianscan(file, context, testing=False):
     scanner = venusian.Scanner(context=context, testing=testing)
 
     # Scan the package
-    _scan(scanner, package)
+    _scan(scanner, package, force=True)
 
 
 def processxmlfile(file, context, testing=False):

@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
+from plone.app.layout import viewlets
+from plone.app.layout.viewlets.interfaces import IPortalHeader
 from zope.i18nmessageid import MessageFactory
 from collective.venusianconfig import configure
 from collective.venusianconfig import scan
 
 from venusianconfigdemo import views
 from venusianconfigdemo import adapters
+from venusianconfigdemo.interfaces import IVenusianConfigDemoLayer
+from venusianconfigdemo.viewlets import LogoViewlet
 
 _ = MessageFactory('venusianconfigdemo')
 
@@ -32,6 +36,16 @@ configure.include(
     package='.portlets',
     file_='configure.py'
 )
+
+with configure(package=viewlets) as subconfigure:
+    subconfigure.browser.viewlet(
+        name='plone.logo',
+        manager=IPortalHeader,
+        klass=LogoViewlet,
+        template='logo.pt',
+        layer=IVenusianConfigDemoLayer,
+        permission='zope2.View'
+    )
 
 configure.gs.registerProfile(
     name='default',
