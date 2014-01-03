@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
+from pkgutil import ImpLoader
+
 import imp
 import os
-import sys
-from pkgutil import ImpLoader
 import re
+import sys
+
+from zope.configuration.exceptions import ConfigurationError
+from zope.configuration.xmlconfig import ParserInfo
+from zope.configuration.xmlconfig import ConfigurationHandler
 
 import venusian
-from zope.configuration.exceptions import ConfigurationError
-from zope.configuration.xmlconfig import ParserInfo, ConfigurationHandler
 
 
 NAMESPACES = {
@@ -255,6 +258,7 @@ def _scan(scanner, package, force=False):
 
 
 def scan(package):
+    """Scan the package for registered venusian callbacks"""
     scope, module, f_locals, f_globals, codeinfo = \
         venusian.advice.getFrameInfo(sys._getframe(1))
     venusian.attach(
@@ -264,6 +268,7 @@ def scan(package):
 
 
 def i18n_domain(domain):
+    """Set i18n domain for the current context"""
     scope, module, f_locals, f_globals, codeinfo = \
         venusian.advice.getFrameInfo(sys._getframe(1))
     venusian.attach(
@@ -273,7 +278,7 @@ def i18n_domain(domain):
     )
 
 
-def venusianscan(file, context, testing=False):
+def venusianscan(file, context, testing=False, force=False):
     """Process a venusian scan"""
 
     # Set default i18n_domain
@@ -290,14 +295,14 @@ def venusianscan(file, context, testing=False):
     scanner = venusian.Scanner(context=context, testing=testing)
 
     # Scan the package
-    _scan(scanner, package, force=True)
+    _scan(scanner, package, force=force)
 
 
 def processxmlfile(file, context, testing=False):
     """Process a configuration file (either zcml or cfg)"""
     from zope.configuration.xmlconfig import _processxmlfile
     if file.name.endswith('.py'):
-        return venusianscan(file, context, testing)
+        return venusianscan(file, context, testing, force=True)
     else:
         return _processxmlfile(file, context, testing)
 
