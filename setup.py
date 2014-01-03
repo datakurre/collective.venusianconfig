@@ -4,7 +4,7 @@ setup(
     name='collective.venusianconfig',
     version='1.0.0',
     description='Experiment for configuring with venusian instead of *.zcml',
-    long_description=(open('README.txt').read() + '\n' +
+    long_description=(open('README.rst').read() + '\n' +
                       open('CHANGES.txt').read()),
     # Get more strings from
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
