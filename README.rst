@@ -1,6 +1,10 @@
 This is just an experiment of using zope.configuration with venusian instead
 of zcml-files.
 
+.. image:: https://travis-ci.org/datakurre/datakurre.venusianconfig.png
+   :target: http://travis-ci.org/datakurre/datakurre.venusianconfig
+
+
 Usage
 -----
 
