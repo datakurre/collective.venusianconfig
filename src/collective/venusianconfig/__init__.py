@@ -164,25 +164,26 @@ class configure(object):
         assert len(directive), 'Configuration is missing namespace'
         if directive[0] in NAMESPACES:
             # Map alias no namespace URI
-            self.__arguments__['namespace'] = NAMESPACES[directive.pop(0)]
+            self.__directive__ = (NAMESPACES[directive.pop(0)],)
         elif directive[0].startswith('http'):
             # Accept explicit namespace URI
-            self.__arguments__['namespace'] = directive.pop(0)
+            self.__directive__ = (directive.pop(0),)
         else:
             # Default top zope namespace URI
-            self.__arguments__['namespace'] = NAMESPACES['zope']
+            self.__directive__ = (NAMESPACES['zope'],)
 
         # Resolve directive
         assert len(directive), 'Configuration is missing directive'
-        self.__arguments__['directive'] = directive.pop(0)
+        self.__directive__ = (self.__directive__[0], directive.pop(0))
 
         if len(directive):
             # Resolve optional callable (for decorators):
-            self.__arguments__['callable'] = directive.pop(0)
+            self.__callable__ = directive.pop(0)
         else:
             # Or attach contextless directives immediately:
+            directive_ = self.__directive__
             arguments = self.__arguments__.copy()
-            arguments['__self__'] = self
+            self_ = self
 
             def callback(scanner, name, ob):
                 # Evaluate conditions
@@ -193,9 +194,6 @@ class configure(object):
                     return
 
                 # Configure standalone directive
-                directive_ = (arguments.pop('namespace'),
-                              arguments.pop('directive'))
-                self_ = arguments.pop('__self__')
                 scanner.context.begin(directive_, arguments, self_.__info__)
 
                 # Do not end when used with 'with' statement
@@ -207,8 +205,10 @@ class configure(object):
             venusian.attach(module, callback, depth=self.__depth__)
 
     def __call__(self, wrapped):
+        directive = self.__directive__
         arguments = self.__arguments__.copy()
-        arguments['__self__'] = self
+        callable_ = self.__callable__
+        self_ = self
 
         def callback(scanner, name, ob):
             # Evaluate conditions
@@ -220,10 +220,7 @@ class configure(object):
 
             # Configure standalone directive
             name = '{0:s}.{1:s}'.format(ob.__module__, name)
-            arguments[arguments.pop('callable')] = name
-            directive = (arguments.pop('namespace'),
-                         arguments.pop('directive'))
-            self_ = arguments.pop('__self__')
+            arguments[callable_] = name
             scanner.context.begin(directive, arguments, self_.__info__)
             scanner.context.end()
 
@@ -330,6 +327,8 @@ class MonkeyPatcher(ImpLoader):
 __loader__ = MonkeyPatcher(sys.modules[__name__])
 
 
-# Helpers
-adapter_config = configure.adapter.factory
-subscriber_config = configure.subscriber.handler
+# Decorator shortcuts
+directive_config = configure.meta.directive.handler
+adapter_config = configure.zope.adapter.factory
+subscriber_config = configure.zope.subscriber.handler
+page_config = configure.plone.page_config.handler

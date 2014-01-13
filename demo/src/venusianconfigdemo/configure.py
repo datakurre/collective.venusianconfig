@@ -54,3 +54,5 @@ configure.gs.registerProfile(
     directory='profiles/default',
     provides='Products.GenericSetup.interfaces.EXTENSION'
 )
+
+configure.include(package='collective.venusianconfig', file='meta.py')
