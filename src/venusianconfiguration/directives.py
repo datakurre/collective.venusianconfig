@@ -9,7 +9,7 @@ from zope.browserpage.metadirectives import IPagesDirective
 from zope.browserpage.metadirectives import IPagesPageSubdirective
 from zope.publisher.interfaces.browser import IDefaultBrowserLayer
 
-from collective.venusianconfig import directive_config
+from venusianconfiguration import directive_config
 
 
 class IViewDirective(IPagesDirective, IPagesPageSubdirective):

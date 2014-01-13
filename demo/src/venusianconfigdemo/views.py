@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from collective.venusianconfig import configure
-from collective.venusianconfig import page_config
+from venusianconfiguration import configure
+from venusianconfiguration import page_config
 
 from Products.Five.browser import BrowserView
 

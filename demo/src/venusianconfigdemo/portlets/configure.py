@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from collective.venusianconfig import i18n_domain
-from collective.venusianconfig import configure
+from venusianconfiguration import i18n_domain
+from venusianconfiguration import configure
 from venusianconfigdemo.portlets import venusianportlet
 
 i18n_domain('venusianconfigdemo')

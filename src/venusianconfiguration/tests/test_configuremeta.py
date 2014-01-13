@@ -3,8 +3,8 @@
 import unittest
 
 
-from collective.venusianconfig import ConfigureMeta
-from collective.venusianconfig import ConfigureMetaProxy
+from venusianconfiguration import ConfigureMeta
+from venusianconfiguration import ConfigureMetaProxy
 
 
 class mock(object):

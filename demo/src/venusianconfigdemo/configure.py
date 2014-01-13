@@ -2,8 +2,8 @@
 from plone.app.layout import viewlets
 from plone.app.layout.viewlets.interfaces import IPortalHeader
 from zope.i18nmessageid import MessageFactory
-from collective.venusianconfig import configure
-from collective.venusianconfig import scan
+from venusianconfiguration import configure
+from venusianconfiguration import scan
 
 from venusianconfigdemo import views
 from venusianconfigdemo import adapters
@@ -55,4 +55,4 @@ configure.gs.registerProfile(
     provides='Products.GenericSetup.interfaces.EXTENSION'
 )
 
-configure.include(package='collective.venusianconfig', file='meta.py')
+configure.include(package='venusianconfiguration', file='meta.py')

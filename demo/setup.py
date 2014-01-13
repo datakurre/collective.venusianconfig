@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='venusianconfigdemo',
     version='1.0.0',
-    description='Demonstration of collective.venusianconfig',
+    description='Demonstration of venusianconfiguration',
     long_description=(open('README.txt').read() + '\n' +
                       open('CHANGES.txt').read()),
     # Get more strings from
@@ -14,7 +14,7 @@ setup(
     keywords='',
     author='Asko Soukka',
     author_email='asko.soukka@iki.fi',
-    url='https://github.com/datakurre/collective.venusianconfig/',
+    url='https://github.com/datakurre/venusianconfiguration/',
     license='GPL',
     packages=find_packages('src', exclude=['ez_setup']),
     package_dir={'': 'src'},
@@ -22,7 +22,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
-        'collective.venusianconfig',
+        'venusianconfiguration',
     ],
     extras_require={'test': [
         'plone.app.testing',

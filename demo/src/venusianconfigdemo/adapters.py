@@ -4,7 +4,7 @@ import logging
 from Products.CMFCore.interfaces import IContentish
 from zope.lifecycleevent import IObjectModifiedEvent
 
-from collective.venusianconfig import subscriber_config
+from venusianconfiguration import subscriber_config
 
 
 @subscriber_config(for_=(IContentish, IObjectModifiedEvent))

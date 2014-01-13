@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='collective.venusianconfig',
+    name='venusianconfiguration',
     version='0.9.0',
     description='Experiment for configuring with venusian instead of *.zcml',
     long_description=(open('README.rst').read() + '\n' +
@@ -18,7 +18,7 @@ setup(
     license='GPL',
     packages=find_packages('src', exclude=['ez_setup']),
     package_dir={'': 'src'},
-    namespace_packages=['collective'],
+    namespace_packages=[],
     include_package_data=True,
     zip_safe=False,
     install_requires=[
