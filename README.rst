@@ -15,9 +15,9 @@ Usage
    ...
    eggs =
        ...
-       venusianconfigure
+       venusianconfiguration
    zope-conf-additional =
-       %import venusianconfigure
+       %import venusianconfiguration
    site-zcml =
        <configure
            xmlns="http://namespaces.zope.org/zope"
