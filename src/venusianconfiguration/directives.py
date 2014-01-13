@@ -46,7 +46,7 @@ def page_config(_context, name, permission, for_,
                 attribute='__call__', menu=None, title=None, handler=None):
 
     if inspect.isfunction(handler):
-        class_ = type('{0:s}{0:s}'.format(str(uuid4()).replace('-', ''),
+        class_ = type('{0:s}{1:s}'.format(str(uuid4()).replace('-', ''),
                                           str(name)),
                       (BrowserViewCallable,),
                       {"_callable": staticmethod(handler)})
