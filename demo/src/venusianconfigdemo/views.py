@@ -5,7 +5,7 @@ from collective.venusianconfig import configure
 from Products.Five.browser import BrowserView
 
 
-@configure.browser.view.klass(name='hello-world', context='*',
+@configure.browser.page.klass(name='hello-world', context='*',
                               permission='zope2.View')
 class HelloWorld(BrowserView):
 

@@ -41,12 +41,6 @@ ARGUMENT_MAP = {
     'class_': 'class',
 }
 
-CALLABLE_ARGUMENTS = [
-    'class',
-    'factory',
-    'handler'
-]
-
 
 class ConfigureMetaProxy(object):
 
@@ -166,26 +160,28 @@ class configure(object):
         # Store processed arguments:
         self.__arguments__ = kwargs.copy()
 
-        # Resolve namespace and directive callable argument for decorator:
-        if directive[-1] in CALLABLE_ARGUMENTS:
-            if len(directive) > 2:
-                ns = directive.pop(0)
-                self.__arguments__['namespace'] = NAMESPACES.get(ns, ns)
-            else:
-                self.__arguments__['namespace'] = NAMESPACES.get('zope')
-            self.__arguments__['directive'] = directive[0]
-            self.__arguments__['callable'] = directive[1]
-
-        # Or attach contextless directives immediately:
+        # Resolve namespace
+        assert len(directive), 'Configuration is missing namespace'
+        if directive[0] in NAMESPACES:
+            # Map alias no namespace URI
+            self.__arguments__['namespace'] = NAMESPACES[directive.pop(0)]
+        elif directive[0].startswith('http'):
+            # Accept explicit namespace URI
+            self.__arguments__['namespace'] = directive.pop(0)
         else:
-            arguments = self.__arguments__.copy()
-            if len(directive) > 1:
-                ns = directive.pop(0)
-                arguments['namespace'] = NAMESPACES.get(ns, ns)
-            else:
-                arguments['namespace'] = NAMESPACES.get('zope')
-            arguments['directive'] = directive[0]
+            # Default top zope namespace URI
+            self.__arguments__['namespace'] = NAMESPACES['zope']
 
+        # Resolve directive
+        assert len(directive), 'Configuration is missing directive'
+        self.__arguments__['directive'] = directive.pop(0)
+
+        if len(directive):
+            # Resolve optional callable (for decorators):
+            self.__arguments__['callable'] = directive.pop(0)
+        else:
+            # Or attach contextless directives immediately:
+            arguments = self.__arguments__.copy()
             arguments['__self__'] = self
 
             def callback(scanner, name, ob):
@@ -332,3 +328,8 @@ class MonkeyPatcher(ImpLoader):
         return super(MonkeyPatcher, self).get_data(self, pathname)
 
 __loader__ = MonkeyPatcher(sys.modules[__name__])
+
+
+# Helpers
+adapter_config = configure.adapter.factory
+subscriber_config = configure.subscriber.handler
