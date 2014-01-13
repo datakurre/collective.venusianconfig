@@ -1,8 +1,8 @@
 This is just an experiment of using zope.configuration with venusian instead
 of zcml-files.
 
-.. image:: https://travis-ci.org/datakurre/datakurre.venusianconfig.png
-   :target: http://travis-ci.org/datakurre/datakurre.venusianconfig
+.. image:: https://travis-ci.org/datakurre/collective.venusianconfig.png
+   :target: http://travis-ci.org/datakurre/collective.venusianconfig
 
 
 Usage
@@ -15,9 +15,9 @@ Usage
    ...
    eggs =
        ...
-       collective.venusianconfig
+       venusianconfigure
    zope-conf-additional =
-       %import collective.venusianconfig
+       %import venusianconfigure
    site-zcml =
        <configure
            xmlns="http://namespaces.zope.org/zope"
