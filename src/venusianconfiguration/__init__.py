@@ -5,6 +5,7 @@ import imp
 import os
 import re
 import sys
+import pkg_resources
 
 from zope.configuration.exceptions import ConfigurationError
 from zope.configuration.xmlconfig import ParserInfo
@@ -298,6 +299,15 @@ def processxmlfile(file, context, testing=False):
         return venusianscan(file, context, testing, force=True)
     else:
         return _processxmlfile(file, context, testing)
+
+
+def has_package(name):
+    try:
+        pkg_resources.get_distribution(name)
+    except pkg_resources.DistributionNotFound:
+        return False
+    else:
+        return True
 
 
 class MonkeyPatcher(ImpLoader):
