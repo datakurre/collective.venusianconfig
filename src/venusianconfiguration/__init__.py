@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 from pkgutil import ImpLoader
-
 import imp
 import os
 import re
 import sys
 import pkg_resources
+import types
 
 from zope.configuration.exceptions import ConfigurationError
 from zope.configuration.xmlconfig import ParserInfo
 from zope.configuration.xmlconfig import ConfigurationHandler
-
 import venusian
 
 
@@ -100,6 +99,8 @@ def get_identifier_or_string(value):
         return '.'.join([value.__module__, value.__name__])
     elif (hasattr(value, '__package__') and hasattr(value, '__name__')
           and value.__package__ == value.__name__):
+        return value.__name__
+    elif isinstance(value, types.ModuleType):
         return value.__name__
     else:
         return value
