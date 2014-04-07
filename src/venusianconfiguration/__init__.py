@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from pkgutil import ImpLoader
 import imp
+import inspect
 import os
+import pkg_resources
 import re
 import sys
-import pkg_resources
 import types
 
 from zope.configuration.exceptions import ConfigurationError
-from zope.configuration.xmlconfig import ParserInfo
 from zope.configuration.xmlconfig import ConfigurationHandler
+from zope.configuration.xmlconfig import ParserInfo
 import venusian
 
 
@@ -293,15 +294,6 @@ def venusianscan(file, context, testing=False, force=False):
     _scan(scanner, package, force=force)
 
 
-def processxmlfile(file, context, testing=False):
-    """Process a configuration file (either zcml or cfg)"""
-    from zope.configuration.xmlconfig import _processxmlfile
-    if file.name.endswith('.py'):
-        return venusianscan(file, context, testing, force=True)
-    else:
-        return _processxmlfile(file, context, testing)
-
-
 def has_package(name):
     try:
         pkg_resources.get_distribution(name)
@@ -311,11 +303,41 @@ def has_package(name):
         return True
 
 
+def processxmlfile(file, context, testing=False):
+    """Process a configuration file"""
+    if file.name.endswith('.py'):
+        return venusianscan(file, context, testing, force=True)
+    else:
+        from zope.configuration.xmlconfig import _processxmlfile
+        return _processxmlfile(file, context, testing)
+
+
+enabled = False
+
+def enable():
+    # Because processxmlfile is used only within xmlconfig-module, it's safe
+    # to monkey patch it anytime with normal patch (no marmoset patch required).
+    global enabled
+    if not enabled:
+        import zope.configuration.xmlconfig
+        zope.configuration.xmlconfig._processxmlfile = \
+            zope.configuration.xmlconfig.processxmlfile
+        zope.configuration.xmlconfig.processxmlfile = processxmlfile
+    enabled = True
+
+def disable():
+    global enabled
+    if enabled:
+        import zope.configuration.xmlconfig
+        zope.configuration.xmlconfig.processxmlfile = \
+            zope.configuration.xmlconfig._processxmlfile
+    enabled = False
+
 class MonkeyPatcher(ImpLoader):
     """
     ZConfig uses PEP 302 module hooks to load this file, and this class
-    implements a get_data hook to intercept the component.xml loading and give
-    us a point to generate it.
+    implements a get_data hook to intercept the component.xml and inject
+    a monkey patch into Zope startup.
     """
     def __init__(self, module):
         name = module.__name__
@@ -325,18 +347,11 @@ class MonkeyPatcher(ImpLoader):
 
     def get_data(self, pathname):
         if os.path.split(pathname) == (self.filename, 'component.xml'):
-            import zope.configuration.xmlconfig
-            setattr(zope.configuration.xmlconfig,
-                    '_processxmlfile',
-                    zope.configuration.xmlconfig.processxmlfile)
-            setattr(zope.configuration.xmlconfig,
-                    'processxmlfile',
-                    processxmlfile)
+            enable()
             return '<component></component>'
         return super(MonkeyPatcher, self).get_data(self, pathname)
 
 __loader__ = MonkeyPatcher(sys.modules[__name__])
-
 
 # Decorator shortcuts
 directive_config = configure.meta.directive.handler
