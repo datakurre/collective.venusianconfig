@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from pkgutil import ImpLoader
 import imp
+import importlib
 import inspect
 import os
 import pkg_resources
@@ -282,10 +283,8 @@ def venusianscan(file, context, testing=False, force=False):
 
     # Import the given file as a module of context.package:
     name = os.path.splitext(os.path.basename(file.name))[0]
-    package = imp.load_source(
-        '{0:s}.{1:s}'.format(context.package.__name__, name),
-        file.name
-    )
+    package = importlib.import_module(
+        '{0:s}.{1:s}'.format(context.package.__name__, name))
 
     # Initialize scanner
     scanner = venusian.Scanner(context=context, testing=testing)
