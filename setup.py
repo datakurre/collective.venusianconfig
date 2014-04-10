@@ -24,7 +24,7 @@ setup(
     install_requires=[
         'setuptools',
         'zope.configuration',
-        'venusian',
+        'venusian>=1.0a8',
     ],
     extras_require={'test': [
         'plone.testing',
