@@ -1,9 +1,55 @@
-This is just an experiment of using zope.configuration with venusian instead
-of zcml-files.
+venusianconfiguration
+=====================
+
+This package (*venusianconfiguration*) provides venusian_ based Python
+configuration syntax for `zope.configuration`_ as an alternative to zcml.
+This package does not replace *zope.configuration* like *grok* used to
+do, but just provides generic Python bindings for existing
+*zope.configuration* directives.
+
+The current status of this package is "already in internal use, but maybe
+not yet ready for he community".
+
+The good:
+
+.. code:: python
+
+   from venusianconfiguration import configure
+
+   @configure.browser.page(
+       name='hello-world', for_=Interface,
+       permission='zope2.View')
+   class HelloWorld(BrowserView):
+       def __call__(self):
+           return u'Hello world!'
+
+The bad:
+
+.. code:: python
+
+   from venusianconfiguration import scan
+   from venusianconfiguration import configure
+
+   from mypackage import browser
+   scan(browser)
+
+   import otherpackage
+   configure.include(otherpackage, file='configure.py')
+
+The ugly:
+
+*zope.configuration* is mostly syntax-agnostic, but unfortunately
+we have
+been using its ZCML-specific API-directly.
+
+
+
+
+.. _venusian: https://pypi.python.org/pypi/venusian
+.. _zope.configuration: https://pypi.python.org/pypi/zope.configuration
 
 .. image:: https://travis-ci.org/datakurre/collective.venusianconfig.png
    :target: http://travis-ci.org/datakurre/collective.venusianconfig
-
 
 Usage
 -----
