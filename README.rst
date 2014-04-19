@@ -23,7 +23,7 @@ The good:
 
    from venusianconfiguration import configure
 
-   configure.i18n.registerLocales(directory='locales')
+   configure.i18n.registerTranslations(directory='locales')
 
    @configure.browser.page(
        name='hello-world', for_=Interface,
@@ -55,19 +55,25 @@ The bad:
 The ugly:
 
 **zope.configuration** is mostly syntax-agnostic, but unfortunately
-ZCML has been the only implemented syntax for it has we have also
+ZCML has been the only implemented syntax for it and we have also
 used to call its ZCML-specific API directly (e.g. in test fixtures
 and in z3c.autoinclude).
 
-Therefore a new zope.configuration syntax cannot be 
-introduced outside zope.configuration without monkeypatching the
-original code.
+Therefore a new zope.configuration syntax cannot be introduced outside
+zope.configuration without monkeypatching...
 
-**venusianconfiguration** works by monkeypatching a ZCML file
-loading method in **zope.configuration** to accept also Python files
-and let venusianconfiguration handle those files. In addition to that
-also a custom `site.zcml`-file is required to make z3c.autoinclude
-load also venusianconfigured packges.
+**venusianconfiguration** works by monkeypatching the processxmlfile
+method in **zope.configuration**'s ZCML-support to accept also Python
+files pass those to venusianconfiguration to process.
+
+Also, in addition to that monkeypatch, a custom `site.zcml`-file is
+required to make z3c.autoinclude load also venusianconfigured packges.
+
+Todo:
+
+- Add monkeypatch for z3c.autoinclude to try also .py-files when
+  .zcml-files do not exist to get rid of the need for custom
+  site.zcml
 
 Usage
 -----
@@ -110,3 +116,5 @@ Usage
            component="AccessControl.security.SecurityPolicy" />
 
        </configure>
+
+For examples, look into the demo-package included in the sources.
