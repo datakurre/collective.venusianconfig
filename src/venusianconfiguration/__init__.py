@@ -2,7 +2,6 @@
 from pkgutil import ImpLoader
 import imp
 import importlib
-import inspect
 import os
 import pkg_resources
 import re
@@ -311,18 +310,47 @@ def processxmlfile(file, context, testing=False):
         return _processxmlfile(file, context, testing)
 
 
+def includePluginsDirective(_context, package, file=None):
+    from z3c.autoinclude.zcml import _includePluginsDirective
+    _includePluginsDirective(_context, package, file)
+    mapping = {'meta.zcml': 'meta.py', 'configure.zcml': 'configure.py'}
+    if file in mapping:
+        _includePluginsDirective(_context, package, mapping[file])
+
+
+def includePluginsOverridesDirective(_context, package, file=None):
+    from z3c.autoinclude.zcml import _includePluginsOverridesDirective
+    _includePluginsOverridesDirective(_context, package, file)
+    mapping = {'overrides.zcml': 'overrides.py'}
+    if file in mapping:
+        _includePluginsOverridesDirective(_context, package, mapping[file])
+
+
 enabled = False
 
+
 def enable():
-    # Because processxmlfile is used only within xmlconfig-module, it's safe
-    # to monkey patch it anytime with normal patch (no marmoset patch required).
+    # Because processxmlfile is used only within xmlconfig-module, it's safe to
+    # monkey patch it anytime with normal patch (no marmoset patch required).
     global enabled
     if not enabled:
         import zope.configuration.xmlconfig
         zope.configuration.xmlconfig._processxmlfile = \
             zope.configuration.xmlconfig.processxmlfile
-        zope.configuration.xmlconfig.processxmlfile = processxmlfile
+        zope.configuration.xmlconfig.processxmlfile = \
+            processxmlfile
+    if not enabled and has_package('z3c.autoinclude'):
+        import z3c.autoinclude.zcml
+        z3c.autoinclude.zcml._includePluginsDirective = \
+            z3c.autoinclude.zcml.includePluginsDirective
+        z3c.autoinclude.zcml.includePluginsDirective = \
+            includePluginsDirective
+        z3c.autoinclude.zcml._includePluginsOverridesDirective = \
+            z3c.autoinclude.zcml.includePluginsOverridesDirective
+        z3c.autoinclude.zcml.includePluginsOverridesDirective = \
+            includePluginsOverridesDirective
     enabled = True
+
 
 def disable():
     global enabled
@@ -330,7 +358,14 @@ def disable():
         import zope.configuration.xmlconfig
         zope.configuration.xmlconfig.processxmlfile = \
             zope.configuration.xmlconfig._processxmlfile
+    if enabled and has_package('z3c.autoinclude'):
+        import z3c.autoinclude.zcml
+        z3c.autoinclude.zcml.includePluginsDirective = \
+            z3c.autoinclude.zcml._includePluginsDirective
+        z3c.autoinclude.zcml.includePluginsOverridesDirective = \
+            z3c.autoinclude.zcml._includePluginsOverridesDirective
     enabled = False
+
 
 class MonkeyPatcher(ImpLoader):
     """
