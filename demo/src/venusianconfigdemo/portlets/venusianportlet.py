@@ -32,7 +32,6 @@ class Renderer(base.Renderer):
         return True
 
     def __call__(self, *args, **kwargs):
-        import pdb; pdb.set_trace()
         super(Renderer, self).__call__(*args, **kwargs)
 
 
