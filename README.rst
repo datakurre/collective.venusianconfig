@@ -51,7 +51,7 @@ The bad:
    scan(browser)
 
    import zcmlpackage
-   configure.include(package=otherpackage)
+   configure.include(package=zcmlpackage)
 
    import otherpypackage
    configure.include(package=otherpypackage, file='configure.py')
