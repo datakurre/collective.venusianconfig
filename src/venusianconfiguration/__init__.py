@@ -28,6 +28,7 @@ NAMESPACES = {
     'meta': 'http://namespaces.zope.org/meta',
     'monkey': 'http://namespaces.zope.org/monkey',
     'plone': 'http://namespaces.plone.org/plone',
+    'transmogrifier': 'http://namespaces.plone.org/transmogrifier',
     'z3c': 'http://namespaces.zope.org/z3c',
     'zcml': 'http://namespaces.zope.org/zcml',
     'zope': 'http://namespaces.zope.org/zope',
