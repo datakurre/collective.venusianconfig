@@ -236,7 +236,7 @@ def _scan(scanner, package, force=False):
     # Check for scanning of sub-packages, which is not yet supported:
     if not os.path.dirname(scanner.context.package.__file__) == \
             os.path.dirname(package.__file__):
-        package_dirname = os.path.dirname(package.__file__)
+        package_dirname = os.path.dirname(scanner.context.package.__file__)
         raise ConfigurationError(
             "Cannot scan package '{0}'. ".format(package_dirname) +
             "Only modules in the same package can be scanned. "
