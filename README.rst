@@ -98,3 +98,46 @@ Usage
        %import venusianconfiguration
 
 For more examples, look into the demo-package included in the sources.
+
+
+Troubleshooting
+---------------
+
+Because the configuration now written in Python, your add-on must have its
+namespaces packages properly defined in its setup.py. E.g. add-on called
+my.product would have following namespace package definition:
+
+..  code:: python
+
+    setup(
+        ...
+        namespace_packages=['my'],
+        ...
+     )
+
+Even there's no ZCML, the add-on must be registered to be configured. This can
+be done by adding the usual z3c.autoinclude-entrypoint into add-on's setup.py:
+
+..  code:: python
+
+   setup(
+       ...
+       entry_points="""
+       # -*- Entry points: -*-
+       [z3c.autoinclude.plugin]
+       target = plone
+       """
+   )
+
+An alternative would be to add the package into the zcml-option of your
+Plone instance's buildout-part for plone.recipe.zope2instance:
+
+..  code:: ini
+
+    [instance]
+    recipe=plone.recipe.zope2instance
+    ...
+    zcml = my.product
+
+
+
