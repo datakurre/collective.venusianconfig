@@ -97,4 +97,17 @@ Usage
        # Enable venuasianconfiguration monkeypatches
        %import venusianconfiguration
 
+Your package must have z3c.autoinclude entry points or it will not be scanned. The namespace also have to be properly defined. So check if setup.py contains:
+
+.. code:: python
+
+   setup(
+      ...
+      namespace_packages=['mypackage'],
+      entry_points="""
+      # -*- Entry points: -*-
+      [z3c.autoinclude.plugin]
+      target = plone
+      """)
+
 For more examples, look into the demo-package included in the sources.
