@@ -8,6 +8,8 @@ import re
 import sys
 import types
 
+from six import with_metaclass
+
 from zope.configuration.exceptions import ConfigurationError
 from zope.configuration.xmlconfig import ConfigurationHandler
 from zope.configuration.xmlconfig import ParserInfo
@@ -108,9 +110,7 @@ def get_identifier_or_string(value):
         return value
 
 
-class configure(object):
-
-    __metaclass__ = ConfigureMeta
+class configure(with_metaclass(ConfigureMeta, object)):
 
     def __enter__(self):
         # Set complex-flag to mark begin of nested directive
@@ -313,6 +313,8 @@ def processxmlfile(file, context, testing=False):
 
 def includePluginsDirective(_context, package, file=None):
     from z3c.autoinclude.zcml import _includePluginsDirective
+    if hasattr(file, 'decode'):
+        file = file.decode('utf-8')
     _includePluginsDirective(_context, package, file)
     mapping = {'meta.zcml': 'meta.py', 'configure.zcml': 'configure.py'}
     if file in mapping:
@@ -321,6 +323,8 @@ def includePluginsDirective(_context, package, file=None):
 
 def includePluginsOverridesDirective(_context, package, file=None):
     from z3c.autoinclude.zcml import _includePluginsOverridesDirective
+    if hasattr(file, 'decode'):
+        file = file.decode('utf-8')
     _includePluginsOverridesDirective(_context, package, file)
     mapping = {'overrides.zcml': 'overrides.py'}
     if file in mapping:

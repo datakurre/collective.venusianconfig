@@ -23,6 +23,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
+        'six',
         'zope.configuration',
         'venusian>=1.0a8',
     ],
