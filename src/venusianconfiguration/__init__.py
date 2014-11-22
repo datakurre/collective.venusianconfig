@@ -232,26 +232,29 @@ class configure(with_metaclass(ConfigureMeta, object)):
         return wrapped
 
 
-def _scan(scanner, package, force=False):
+def _scan(scanner, module, force=False):
     # Check for scanning of sub-packages, which is not yet supported:
-    if not os.path.dirname(scanner.context.package.__file__) == \
-            os.path.dirname(package.__file__):
-        package_dirname = os.path.dirname(scanner.context.package.__file__)
+    if getattr(scanner.context, 'package', None) \
+        and not os.path.dirname(scanner.context.package.__file__) == \
+            os.path.dirname(module.__file__):
+        module_name = module.__name__
+        scanner_name = scanner.context.package.__name__
         raise ConfigurationError(
-            "Cannot scan package '{0}'. ".format(package_dirname) +
-            "Only modules in the same package can be scanned. "
-            "Sub-packages or separate packages must be configured "
-            "using include-directive."
+            "Cannot scan '{0}' from '{1}'. ".format(module_name,
+                                                    scanner_name) +
+            "Only modules in the same directory can be scanned. "
+            "Sub-packages or separate packages/directories must be configured "
+            "using include directive."
         )
 
-    if force or scanner.context.processFile(package.__file__):
+    if force or scanner.context.processFile(module.__file__):
         # Scan non-decorator configure-calls:
-        _package = imp.new_module(package.__name__)
-        setattr(_package, '__configure__', package)  # Any name would work...
-        scanner.scan(_package)
+        _module = imp.new_module(module.__name__)
+        setattr(_module, '__configure__', module)  # Any name would work...
+        scanner.scan(_module)
 
         # Scan decorators:
-        scanner.scan(package)
+        scanner.scan(module)
 
 
 def scan(package):
@@ -275,22 +278,27 @@ def i18n_domain(domain):
     )
 
 
-def venusianscan(file, context, testing=False, force=False):
+def venusianscan(file_or_module, context, testing=False, force=False):
     """Process a venusian scan"""
 
     # Set default i18n_domain
-    context.i18n_domain = context.package.__name__
+    if getattr(context, 'package', None):
+        context.i18n_domain = context.package.__name__
 
-    # Import the given file as a module of context.package:
-    name = os.path.splitext(os.path.basename(file.name))[0]
-    package = importlib.import_module(
-        '{0:s}.{1:s}'.format(context.package.__name__, name))
+    if isinstance(file_or_module, types.ModuleType):
+        # Use the given module directly
+        module = file_or_module
+    else:
+        # Import the given file as a module of context.package:
+        name = os.path.splitext(os.path.basename(file_or_module.name))[0]
+        module = importlib.import_module(
+            '{0:s}.{1:s}'.format(context.package.__name__, name))
 
     # Initialize scanner
     scanner = venusian.Scanner(context=context, testing=testing)
 
     # Scan the package
-    _scan(scanner, package, force=force)
+    _scan(scanner, module, force=force)
 
 
 def has_package(name):

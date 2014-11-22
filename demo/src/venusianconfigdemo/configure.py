@@ -7,6 +7,7 @@ from venusianconfiguration import scan
 
 from venusianconfigdemo import views
 from venusianconfigdemo import adapters
+from venusianconfigdemo import portlets
 from venusianconfigdemo.interfaces import IVenusianConfigDemoLayer
 from venusianconfigdemo.viewlets import LogoViewlet
 
@@ -33,9 +34,19 @@ configure.browser.page(
 )
 
 configure.include(
-    package='.portlets',
+    package=portlets,
     file_='configure.py'
 )
+
+#
+# Note! Scanning of sub-packages is not yet supported, so
+# sub-packages must have their own configure.py and must be
+# included using configure.include, not scan!
+#
+# This would not work:
+#
+# scan(portlets)
+#
 
 with configure(package=viewlets) as subconfigure:
     subconfigure.browser.viewlet(
